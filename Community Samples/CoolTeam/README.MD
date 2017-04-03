@@ -1,3 +1,6 @@
+## Warning! NOT FOR PRODUCTION!
+This symbol is still a work in progress. It might break styling of native PI Vision elements.  
+
 ## Asset Picker pane: 
 
 <img src="https://github.com/osipmartin/PI-Coresight-Custom-Symbols/blob/master/Community%20Samples/CoolTeam/Example.png" />
