@@ -1,5 +1,5 @@
 ## Warning! NOT FOR PRODUCTION!
-This symbol is still a work in progress. It might break styling of native PI Vision elements.  
+Further than the standard “not ready for production” caveat, this symbol is “not safe for production.” The styling here can in certain cases have unintended global effects, spilling over and affecting the native PI Vision elements. We’re working on that. 
 
 ## Asset Picker pane: 
 
