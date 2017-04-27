@@ -1,94 +1,131 @@
-<!--  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<!--
+<ul kendo-panel-bar class="t-side-panel-bgcolor" style="font-size: 14px;">
+    <li class="k-state-active">
+        <span class="panel-bar-label-no-wrap">
+			Search
+		</span>
 
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <div style="width: 85%; margin: 10px 0 15px 18px;">
 
- -->
-<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script> -->
-<div class="c-side-panel flex-none">
-<div class="c-pane-header t-pane-header-color t-font-color-white t-content-font-large flex-none"><img class="tool-tab-icon" style="padding-right:10px" src='Scripts/app/editor/tools/ext/Icons/chrome.custom_addin_crossed_tools.svg'></img>Element Relative Display</div> 
-<div class="c-side-pane t-toolbar t-content-font-large t-font-color-white flex-none" data-toggle="collapse" href="#collapseSearch"  ng-click="searchPaneCollapsed = !searchPaneCollapsed"> 
-			<span class="content-align">
-				Search
-				<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-right' : searchPaneCollapsed, 'glyphicon-chevron-down': !searchPaneCollapsed}"></i>
-			</span>
+        </div>
 
-</div> 
+        <div style="width: 85%; margin: 15px 0 15px 15px;">
 
-<div class=" collapse in" id="collapseSearch">
-  <div class="side-panel-content">
-		<div class='searchField'>
-			<label for="input-server">Server </label>
-			<select id="input-server" ng-model="ERDData.selectedServer" class="form-control" ng-options="server as server.Name for server in ERDData.servers" ng-change="ERDData.serverSelect()"> </select>
+        </div>
+    </li>
+	<li class="k-state-active">
+        <span class="panel-bar-label-no-wrap">Search</span>
+
+        <div style="width: 85%; margin: 10px 0 15px 18px;">
+
+        </div>
+
+        <div style="width: 85%; margin: 15px 0 15px 15px;">
+
+        </div>
+    </li>
+</ul>
+-->
+
+
+
+
+
+
+<div class="flex-auto k-widget k-splitter" style="border-width: 0px; touch-action:none" kendo-splitter k-panes="[{size:'55%', max:'55%'}, {size:'45%', collapsible:true, collapsed:false}]" k-orientation="'vertical'" data-role="splitter">
+	<div class="c-side-panel flex-none k-pane k-scrollable">
+		<div class="c-pane-header t-pane-header-color t-font-color-white t-content-font-large flex-none"><img class="tool-tab-icon" style="padding-right:10px" src='Scripts/app/editor/tools/ext/Icons/LinkedCubes.png'></img>Element Relative Display</div> 
+			<div class="c-side-pane t-toolbar t-content-font-large t-font-color-white flex-none" data-toggle="collapse" href="#collapseSearch"  ng-click="searchPaneCollapsed = !searchPaneCollapsed"> 
+				<span class="content-align">
+					Search
+					<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-right' : searchPaneCollapsed, 'glyphicon-chevron-down': !searchPaneCollapsed}"></i>
+				</span>
+			</div> 
+
+		<div class="collapse in" id="collapseSearch">
+		  <div id='searchPanel' class="side-panel-content">
+				
+				<div id='server-selection' class='searchField'>
+					<label for="input-server">Server </label>
+					<div id='server-connection'>
+						<select id="input-server" ng-model="ERDData.selectedServer" class="fauxstrap-fc" ng-options="server as server.Name for server in ERDData.servers" ng-change="ERDData.serverSelect()"> </select>
+						<div class='connection-status'> </div>
+					</div>
+				</div>
+					
+				<div class='searchField'>
+					<label for="input-database">Database: </label>
+					<select id="input-database" ng-model="ERDData.selectedDatabase" class="select-input fauxstrap-fc" ng-options="database as database.Name for database in ERDData.databases" ng-change="ERDData.databaseSelect()"> </select>
+				</div>
+					
+				<div class='searchField atc-contents'>
+					<label for="input-root">Root Element: </label>
+					<div class="k-atc-wrapper">
+						<input type="text" id="input-root" class="text-input fauxstrap-fc" ng-model="ERDData.rootString" ng-change="ERDData.rootChanged({{ERDData}})" style="width: 97%; height: 31px;" />
+					</div>
+				</div>
+
+				<div class='searchField'>
+					<label for="input-name">Element Name: </label>
+					<input type="text" id="input-name" class="text-input fauxstrap-fc" ng-model="ERDData.name" placeholder="*" />
+				</div>
+				
+				<div class='searchField cbx-contents'>
+					<label for="input-template">Template Name: </label>
+					<div class='k-cbx-wrapper'>
+						<input ng-model="ERDData.template" id="input-template" class="cbx-input" style="width: 90%" />
+					</div>
+				</div>
+				
+				<div class='searchField cbx-contents'>
+					<label for="input-category">Category Name: </label>
+					<div class='k-cbx-wrapper'>
+						<input ng-model="ERDData.category" ng-enabled="ERDData.categories.length<=0" id="input-category" class="cbx-input" style="width: 90%;" />
+					</div>
+				</div>
+
+				<div class='searchField addExisting'>
+					<input ng-model="ERDData.addToExisting" id="addToExisting" type="checkbox">
+					<label for="addToExisting">Add to Existing Results</label>
+				</div>
+				
+				<div class='searchField searchButton text-center'>
+					<input type="button" class="fauxstrap-button" value="Search" ng-click="ERDData.executeQuery()">
+				</div>	
+		  </div>
 		</div>
-			
-		<div class='searchField'>
-			<label for="input-database">Select a Database</label>
-			<select id="input-database" ng-model="ERDData.selectedDatabase" class="form-control" ng-options="database as database.Name for database in ERDData.databases" ng-change="ERDData.databaseSelect()"> </select>
-		</div>
-			
-		<div class='searchField'>
-			<label for="input-root">Root Element: </label>
-			<input type="text" id="input-root" class="form-control" ng-model="ERDData.root" placeholder="">
-		</div>
-
-		<div class='searchField'>
-			<label for="input-name">Element Name: </label>
-			<input type="text" id="input-name" class="form-control" ng-model="ERDData.name" placeholder="*">
-		</div>
-
-		<div class='searchField'>
-			<label for="input-template">Template Name: </label>
-			<input type="text" id="input-template" class="form-control" ng-model="ERDData.template" placeholder="*">
-		</div>
-
-		<div class='searchField addExisting'>
-			<input ng-model="ERDData.addToExisting" id="addToExisting" type="checkbox">
-			<label for="addToExisting">Add to Existing Results</label>
-		</div>
-		
-		<div class='searchField searchButton text-center'>
-			<input type="button" class="btn btn-primary" value="Search" ng-click="ERDData.executeQuery()">
-		</div>	
-  </div>
-</div>
-
-
-
-
-<div class="c-side-pane t-toolbar t-content-font-large t-font-color-white flex-none" data-toggle="collapse" href="#collapseElofInterest" ng-click="elementPaneCollapsed = !elementPaneCollapsed">
-	<span class="content-align">
-		Elements of Interest
-		<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-right' : elementPaneCollapsed, 'glyphicon-chevron-down': !elementPaneCollapsed}"></i>
-	</span>
-	
-</div> 
-
-<div class="collapse in" id="collapseElofInterest">
-	<div class="side-panel-content flex-auto scroll ui-draggable ui-draggable-handle scroll at-top-level">
-		<table id="ElementsOfInterestTable" class="table table-striped table-condensed table-hover angular-animate" ng-hide="ERDData.elements < 1">
-			<thead class="thHeader">
-				<tr>
-					<th class="tdremove">Remove</th>
-					<th scope="col">Name</th>
-					<th scope="col">Description</th>
-					<th scope="col">Path</th>
-				</tr>
-			</thead>
-			<tr ng-repeat="element in ERDData.elements" class="trElementsOfInterest" ng-click="ERDData.selectedRow(element)">
-					<td>
-						<div class="removebutton" ng-click="ERDData.deleteCurrentRow($index)"><large class="glyphicon glyphicon-trash "></large></div>
-					</td>
-					<td>
-						{{ element.Name }}
-					</td>
-					<td>
-						{{ element.Description }}
-					</td>
-					<td>
-						{{ element.Path }}
-					</td>
-			</tr>
-		</table>
 	</div>
-</div>
+
+	<div class="c-side-panel flex-none k-pane k-scrollable">
+		<div class="c-side-pane t-toolbar t-content-font-large t-font-color-white flex-none" data-toggle="collapse" href="#collapseElofInterest" ng-click="elementPaneCollapsed = !elementPaneCollapsed">
+			<span class="content-align">
+				Elements of Interest
+				<i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-right' : elementPaneCollapsed, 'glyphicon-chevron-down': !elementPaneCollapsed}"></i>
+			</span>
+			
+		</div> 
+
+		<div class="collapse in" id="collapseElofInterest">
+			<div class="side-panel-content flex-auto scroll ui-draggable ui-draggable-handle scroll at-top-level">
+				<table id="ElementsOfInterestTable" class="angular-animate" ng-hide="ERDData.elements < 1">
+					<thead class="thHeader">
+						<tr>
+							<th class="tdremove">Remove</th>
+							<th scope="col">Name</th>
+							<th scope="col">Description</th>
+							<th scope="col">Path</th>
+						</tr>
+					</thead>
+					<tr ng-repeat="element in ERDData.elements" class="trElementsOfInterest" ng-click="ERDData.selectedRow(element)">
+							<td>
+								<div ng-click="ERDData.deleteCurrentRow($index)"><img class="removebutton" src='Scripts/app/editor/tools/ext/Icons/trashcan.png'></img></div>
+							</td>
+							<td>{{element.Name}}</td>
+							<td>{{element.Description}}</td>
+							<td>{{element.Path}}</td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</div>
 </div>
