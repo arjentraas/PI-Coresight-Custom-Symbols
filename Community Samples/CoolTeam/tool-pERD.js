@@ -375,7 +375,7 @@ window.PIVisualization = window.PIVisualization || {};
 		
 		$http.get(_piwebapiurl + 'assetservers/'+webid+'/assetdatabases', {withCredentials: true})
 			.success(function(data, status, headers, config){
-				$('.connection-status').css('background-image','url("/PIVision/Images/green_ok.png")');
+				$('.connection-status').css('background-image','url("Scripts/app/editor/tools/ext/Icons/green_ok.png")');
 				
 				//check to see if the user has read access to the database before adding it to the database list
 				var promises = [];
@@ -612,12 +612,14 @@ window.PIVisualization = window.PIVisualization || {};
 								}
 							};
 							
+							var attribute_WebId = null;
 							//Get the attribute for this Display
 							for (var i=0, n=ERDDB_Attributes.length; i<n; i++) {
 								if (attributearray[i] == ERD_Attribute) {
-									var attribute_WebId = ERDDB_Attributes[i].WebId;
+									attribute_WebId = ERDDB_Attributes[i].WebId;
 								}
 							}
+							var httprequesttype = "PUT";
 							
 							//figure out what's in the table
 								var table = document.getElementById("ElementsOfInterestTable");
@@ -646,7 +648,7 @@ window.PIVisualization = window.PIVisualization || {};
 
 									$.ajax({
 										url: url,
-										type: "PUT",		
+										type: httprequesttype,		
 										contentType: "application/json",				
 										data: data,			
 										xhrFields: {
@@ -747,14 +749,16 @@ window.PIVisualization = window.PIVisualization || {};
 	
 	//Get the Display ID from Coresight's URL
 	var URLParams = document.URL.split("/");
-	var VisionURL = URLParams[0] + "/" + URLParams[1] + "/" + URLParams[2] + "/" URLParams[3];
-	window.alert(VisionURL + "/Scripts/app/editor/tools/ext/setup.json");
+	var VisionURL = URLParams[0] + "/" + URLParams[1] + "/" + URLParams[2] + "/" + URLParams[3];
+	//window.alert(VisionURL + "/Scripts/app/editor/tools/ext/setup.json");
 	var ERD_Attribute = URLParams[6];
 	var ERD_Server;
-	
+	var ERD_Database = "ERD_DB_Store";
+	var ERD_Element_Store = "ERD_Element_Store";
+		
 	var content;
 	$.ajax({
-		url: VisionURL + "/PIVision/Scripts/app/editor/tools/ext/setup.json",
+		url: VisionURL + "/Scripts/app/editor/tools/ext/setup.json",
 		type: "GET",	
 		dataType: "JSON",		
 		xhrFields: {
@@ -764,12 +768,8 @@ window.PIVisualization = window.PIVisualization || {};
 	.done(function(data, textStatus, xhr){
 		content = data;
 		ERD_Server = content.AFServer;
-		console.log(ERD_Server);
-		
-		//Check if the ERD Element exists
-		var ERD_Database = "ERD_DB_Store";
-		var ERD_Element_Store = "ERD_Element_Store";
-		
+		//console.log(ERD_Server);
+
 		//New Displays will have nothing to load up
 		if (ERD_Attribute != "New") { 
 			var url = _piwebapiurl + ("attributes/?path=\\\\" + ERD_Server + "\\" + ERD_Database + "\\" + ERD_Element_Store + "|" + ERD_Attribute);
