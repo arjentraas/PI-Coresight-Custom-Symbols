@@ -196,16 +196,20 @@ window.PIVisualization = window.PIVisualization || {};
 	}).data("kendoAutoComplete");
 	
 	var _piwebapiurl  = PV.ClientSettings.PIWebAPIUrl.replace(/\/?$/, '/'); 
-	
-	$http.get(_piwebapiurl + 'assetservers', {withCredentials: true})
-		.success(function(data, status, headers, config, statusText){
-
-			data.Items.forEach(function(element){
-				$rootScope.ERDData.servers.push({Name: element.Name, WebId: element.WebId});
-			});		
-			
-			$rootScope.ERDData.selectedServer = $rootScope.ERDData.servers[0];
-		});
+	$.ajax({
+		url: _piwebapiurl + 'assetservers',
+		type: "GET",			
+		xhrFields: {
+		  withCredentials: true
+		}
+	})
+	.done(function(data){
+		data.Items.forEach(function(element){
+			$rootScope.ERDData.servers.push({Name: element.Name, WebId: element.WebId});
+		});		
+		
+		$rootScope.ERDData.selectedServer = $rootScope.ERDData.servers[0];
+	});
 	
 	$rootScope.$watch('ERDData.selectedServer',function(){
 		if(!jQuery.isEmptyObject($rootScope.ERDData.selectedServer)){
@@ -303,10 +307,10 @@ window.PIVisualization = window.PIVisualization || {};
 			if($rootScope.ERDData.name){
 				extraparams += '&nameFilter=' + encodeURI($rootScope.ERDData.name);
 			}
-			if($rootScope.ERDData.template){
+			if($rootScope.ERDData.template && $rootScope.ERDData.template !== '*'){
 				extraparams += '&templateName=' + encodeURI($rootScope.ERDData.template);
 			}
-			if($rootScope.ERDData.category){
+			if($rootScope.ERDData.category && $rootScope.ERDData.category !== '*'){
 				extraparams += '&categoryName=' + encodeURI($rootScope.ERDData.category);
 			}
 			
@@ -325,22 +329,27 @@ window.PIVisualization = window.PIVisualization || {};
 		
 
 			var elementurl = _piwebapiurl + endpoint + '/elements?searchFullHierarchy=true' + extraparams;
-			$http.get(elementurl, {withCredentials: true})
-				.success(function(data, status, headers, config, statusText){
-					if(data.Items.length > 0){	
-						data.Items.forEach(function(Element)
-						{
-							$rootScope.ERDData.elements.push(Element);
-						});
-						removeDuplicates();
-						//Seems like a good spot to call a build AF Element function for storing
-						saveQuery();
-					}
-					else{
-						alert("No elements found");
-					}					
-				});
-				
+			$.ajax({
+				url: elementurl,
+				type: "GET",			
+				xhrFields: {
+				  withCredentials: true
+				}
+			})
+			.done(function(data){
+				if(data.Items.length > 0){	
+					data.Items.forEach(function(Element)
+					{
+						$rootScope.ERDData.elements.push(Element);
+					});
+					removeDuplicates();
+					//Seems like a good spot to call a build AF Element function for storing
+					saveQuery();
+				}
+				else{
+					alert("No elements found");
+				}					
+			});
 		}
 		else{
 			alert("Please select a server and database");
@@ -370,38 +379,45 @@ window.PIVisualization = window.PIVisualization || {};
 		$rootScope.ERDData.databases = [];
 		$('#input-database').prop('disabled',true);
 		$('.connection-status').css('background-image','url("/PIVision/Images/loading.gif")');
+		$('.connection-status').prop('title', 'Attempting Connection');
 		
 		var webid = $rootScope.ERDData.selectedServer.WebId;
+		var url = _piwebapiurl + 'assetservers/'+webid+'/assetdatabases';
 		
-		$http.get(_piwebapiurl + 'assetservers/'+webid+'/assetdatabases', {withCredentials: true})
-			.success(function(data, status, headers, config){
-				$('.connection-status').css('background-image','url("Scripts/app/editor/tools/ext/Icons/green_ok.png")');
-				
-				//check to see if the user has read access to the database before adding it to the database list
-				var promises = [];
-				$.each(data.Items, function(k, v) {
-					promises.push(validateDatabaseSecurity({Name: v.Name, WebId: v.WebId},v.Links.Security));
-				});
-				
-				$.when.apply($, promises).then(function() {
-					
-					if($rootScope.ERDData.databases.length > 0){
-						$rootScope.ERDData.selectedDatabase = $rootScope.ERDData.databases[0];
-						$('#input-database').prop('disabled',false);
-						$('.connection-status').prop('title', 'Connected');
-					}
-					else{
-						$('.connection-status').prop('title', 'No available databases');
-					}
-				});
-			})
-			.error(function(error){
-				//if we haven't switched servers since the request
-				if(webid === $rootScope.ERDData.selectedServer.WebId){
-					$('.connection-status').prop('title', error.Errors[0]);
-					$('.connection-status').css('background-image',' url("/PIVision/Images/error_icon.png")');
+		
+		$.ajax({
+			url: url,
+			type: "GET",			
+			xhrFields: {
+			  withCredentials: true
+			}
+		})
+		.done(function(data){
+			$('.connection-status').css('background-image','url("Scripts/app/editor/tools/ext/Icons/green_ok.png")');
+			
+			//check to see if the user has read access to the database before adding it to the database list
+			var promises = [];
+			$.each(data.Items, function(k, v) {
+				promises.push(validateDatabaseSecurity({Name: v.Name, WebId: v.WebId},v.Links.Security));
+			});
+			
+			$.when.apply($, promises).then(function() {			
+				if($rootScope.ERDData.databases.length > 0){		
+					$rootScope.ERDData.selectedDatabase = $rootScope.ERDData.databases[0];
+					$('#input-database').prop('disabled',false);
+					$('.connection-status').prop('title', 'Connected');
 				}
-			});	
+				else{
+					$('.connection-status').prop('title', 'No available databases');
+				}
+			});
+		})
+		.fail(function(error){
+			if(webid === $rootScope.ERDData.selectedServer.WebId){
+				$('.connection-status').prop('title', error.statusText);
+				$('.connection-status').css('background-image',' url("/PIVision/Images/error_icon.png")');
+			}
+		});
 	}
 	
 	function validateDatabaseSecurity(element,url){	
@@ -425,82 +441,193 @@ window.PIVisualization = window.PIVisualization || {};
 	// Build an AF Element to store the elements that are in the "Elements of Interest" table
 	var saveQuery = function(){
 		
-		// Create an array of databases rather than a collection of dictionary objects
-		var databasearray = [];
-		var numDB = $rootScope.ERDData.databases.length;
-		if (numDB > 0){
-			for(var i = 0; i < $rootScope.ERDData.databases.length; i++){
-				databasearray.push($rootScope.ERDData.databases[i].Name.toString());
+		var urlfindattribute = _piwebapiurl + "attributes/?path=\\\\" + ERD_Server + "\\" + ERD_Database + "\\" + ERD_Element_Store + "|" + ERD_Attribute;
+		$.ajax({
+			url: urlfindattribute,
+			type: "GET",
+			xhrFields: {
+			  withCredentials: true
 			}
-
-		};
-
-		//Create the database if it doesn't exist yet
-		if (databasearray.includes(ERD_Database) == false){
-			var urlcreateDB = _piwebapiurl + 'assetservers/'+$rootScope.ERDData.selectedServer.WebId+'/assetdatabases';
+		})
+		.done(function(data, textStatus, xhr){
+			// Everything we need is created, so we're good to go ahead and save the information
 			
-			var data_DB = {
-				"Name": ERDDB,
-				"Description": "Database for storing the Elements of Interest Table in Coresight",
-				"ExtendedProperties": {}
-			};
-			var data = JSON.stringify(data_DB);
+			var attribute_WebId = data.WebId;
 			
+			//figure out what's in the table
+			var table = document.getElementById("ElementsOfInterestTable");
+			var attvalue = "";
+			
+			//Borrowed from here: http://stackoverflow.com/questions/3072233/getting-value-from-table-cell-in-javascript-not-jquery
+			setTimeout(function() {
+				if (table.rows.length != 0){
+					for (var r = 1, n = table.rows.length; r < n; r++) { //We start at row 1 and not 0 because the first row is the table headers
+						for (var c = 1, m = table.rows[r].cells.length; c < m; c++) { //We start at column 1 and not 0 because the first column is the remove button
+							var value = table.rows[r].cells[c].innerHTML;
+							attvalue += value;
+							attvalue += ";";
+						}
+					}
+				}
+				//Post this string to the Attribute value for Storage 
+				var data_Attribute = {
+					"Timestamp": "2017-01-01T01:00:00Z", //Arbitrary time selecting for post
+					"Value": attvalue
+				};
+				var data_attribute = JSON.stringify(data_Attribute);
+				
+				var url = _piwebapiurl + 'attributes/'+ attribute_WebId  + '/value'
+
+				$.ajax({
+					url: url,
+					type: "PUT",		
+					contentType: "application/json",				
+					data: data_attribute,			
+					xhrFields: {
+					  withCredentials: true
+					}
+				})
+				.done(function(data, textStatus, xhr){
+					console.log("Success");
+				})
+				.fail(function(xhr, textStatus, errorThrown){
+					console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+				});
+			}, 100); //Giving the table a tenth of a second to load. Inelegant and time consuming but it works	
+		})
+		.fail(function(xhr, textStatus, errorThrown){
+			//One or more things are missing
+			console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+			
+			// Connect to the AF Server
+			var urlfindserver = _piwebapiurl + "assetservers/?path=\\\\" + ERD_Server;
 			$.ajax({
-				url: urlcreateDB,
-				type: "POST",		
-				contentType: "application/json",				
-				data: data,			
+				url: urlfindserver,
+				type: "GET",	
 				xhrFields: {
 				  withCredentials: true
 			    }
 			})
 			.done(function(data, textStatus, xhr){
-				console.log("Success, created a ERD_DB_Store AF Database");
-			})
-			.fail(function(xhr, textStatus, errorThrown){
-				console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
-			});
-			//Update the databases variable
-			 GenerateDatabases();
-		}
-		
-		//Determine if there is an AF Element in the ERDDB
-		
-		//Get the WebId of the ERDDB
-		var numDB = $rootScope.ERDData.databases.length;
-		if (numDB > 0){
-			for(var i = 0; i < $rootScope.ERDData.databases.length; i++){
-				if($rootScope.ERDData.databases[i].Name == ERD_Database){
-					var ERDDB_WebId = $rootScope.ERDData.databases[i].WebId;
-				};
-			};
-		};
-		
-		
-		//Use the WebId for the ERDDB to query for the Elements in the Database
-		var ERDDB_Elements = [];
-		var rooturl = _piwebapiurl + 'assetdatabases/' + ERDDB_WebId + '/elements';
-		$http.get(rooturl, {withCredentials: true})
-			.success(function(rootdata, rootstatus, rootheaders, rootconfig, rootstatusText){
-				if(rootdata.Items.length > 0){
-					rootdata.Items.forEach(function(Element){
-						ERDDB_Elements.push(Element);
-					});
+				// We can connect to the Server, so let's check the Database
+				var Server_WebId = data.WebId;
+				
+				var urlfindDB = _piwebapiurl + 'assetdatabases/?path=\\\\' + ERD_Server + "\\" + ERD_Database;
+				$.ajax({
+					url: urlfindDB,
+					type: "GET",	
+					xhrFields: {
+					  withCredentials: true
+					}
+				})
+				.done(function(data, textStatus, xhr){
+					// The Database exists, so let's check the Elements in the database
+					var Database_WebId = data.WebId;
 					
-					//Need to put this up here to ensure that ERDDB_Elements call has finished prior to moving on
-					var indexElement = false;
-					if (ERDDB_Elements.length != 0) {
-						if (ERDDB_Elements[0].Name == ERD_Element_Store) {
-							indexElement = true;
-						};
-					};
-					
-					//Create the Storage Element if it doesn't exist yet
-					if(indexElement == false) {
-						alert("We see you have no Element to store config data in, let me get that for you")
-						var urlcreateElement = _piwebapiurl + 'assetdatabases/'+ ERDDB_WebId  + '/elements';
+					var urlfindElement = _piwebapiurl + 'elements/?path=\\\\' + ERD_Server + "\\" + ERD_Database + "\\" + ERD_Element_Store;
+					$.ajax({
+						url: urlfindElement,
+						type: "GET",	
+						xhrFields: {
+						  withCredentials: true
+						}
+					})
+					.done(function(data, textStatus, xhr){
+						//The Element exists, so it must be the attribute we're missing
+						
+						var Element_WebId = data.WebId
+						
+						var urlcreateAttribute = _piwebapiurl + '/elements/' + Element_WebId + '/attributes'
 
+						var data_Attribute = {
+							"Name": ERD_Attribute,
+							"Description": "Holds the config string of the Elements of Interest",
+							"Type": "String",
+							"TypeQualifier": "",
+							"DefaultUnitsName": ""
+						}
+						var data = JSON.stringify(data_Attribute);
+						
+						$.ajax({
+							url: urlcreateAttribute,
+							type: "POST",		
+							contentType: "application/json",				
+							data: data,			
+							xhrFields: {
+							  withCredentials: true
+							}
+						})
+						.done(function(data, textStatus, xhr){
+							console.log("Success, created an attribute to store config data in");
+							
+							//Time to build out the value for the attribute
+							
+							//figure out what's in the table
+							var table = document.getElementById("ElementsOfInterestTable");
+							var attvalue = "";
+							
+							
+							//Borrowed from here: http://stackoverflow.com/questions/3072233/getting-value-from-table-cell-in-javascript-not-jquery
+							setTimeout(function() {
+								if (table.rows.length != 0){
+									for (var r = 1, n = table.rows.length; r < n; r++) { //We start at row 1 and not 0 because the first row is the table headers
+										for (var c = 1, m = table.rows[r].cells.length; c < m; c++) { //We start at column 1 and not 0 because the first column is the remove button
+											var value = table.rows[r].cells[c].innerHTML;
+											attvalue += value;
+											attvalue += ";";
+										}
+									}
+								}
+								//Post this string to the Attribute value for Storage 
+								var data_Attribute = {
+									"Timestamp": "2017-01-01T01:00:00Z", //Arbitrary time selecting for post
+									"Value": attvalue
+								};
+								var data = JSON.stringify(data_Attribute);
+								
+								$.ajax({
+									url: urlfindattribute,
+									type: "GET",	
+									xhrFields: {
+									  withCredentials: true
+									}
+								})
+								.done(function(data, textStatus, xhr){
+									var attribute_WebId = data.WebId
+									
+									var url = _piwebapiurl + 'attributes/'+ attribute_WebId  + '/value'
+
+									$.ajax({
+										url: url,
+										type: "PUT",		
+										contentType: "application/json",				
+										data: data,			
+										xhrFields: {
+										  withCredentials: true
+										}
+									})
+									.done(function(data, textStatus, xhr){
+										console.log("Success");
+									})
+									.fail(function(xhr, textStatus, errorThrown){
+										console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+									});
+								})
+								.fail(function(xhr, textStatus, errorThrown){
+									console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+								});
+							}, 100); //Giving the table a tenth of a second to load. Inelegant and time consuming but it works	
+						})
+						.fail(function(xhr, textStatus, errorThrown){
+							console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+						});
+					})
+					.fail(function(data, textStatus, xhr){
+						
+						
+						var urlcreateElement = _piwebapiurl + 'assetdatabases/' + Database_WebId + '/elements'
+						
+						// The element doesn't exist so let's create it
 						var data_Element = {
 							"Name": ERD_Element_Store,
 							"Description": "An element which holds string attributes containing the saved elements of interest",
@@ -518,48 +645,19 @@ window.PIVisualization = window.PIVisualization || {};
 							}
 						})
 						.done(function(data, textStatus, xhr){
-							console.log("Success");
-						})
-						.fail(function(xhr, textStatus, errorThrown){
-							console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
-						});
-					}
-					
-					//Get the WebID of the ERD Element Store
-					var ERDDB_Element_WebId = ERDDB_Elements[0].WebId;
-					
-					//Get the Display ID from Coresight's URL
-					var URLParams = document.URL.split("/");
-					var ERD_Attribute = URLParams[6];
-					
-					//Get the Attributes on the ERD element
-					var ERDDB_Attributes = [];
-					$http.get(_piwebapiurl + 'elements/'+ ERDDB_Element_WebId +'/attributes', {withCredentials: true})
-						.success(function(data, status, headers, config, statusText){
-							data.Items.forEach(function(Element){
-								ERDDB_Attributes.push(Element);
-							});
+							console.log("Success, created a ERD Element Store");
 							
-							// Create an array of attributes rather than a collection of dictionary objects
-							var attributearray = [];
-							var numatt = ERDDB_Attributes.length;
-							if (numatt > 0){
-								for(var i = 0; i < numatt; i++){
-									attributearray.push(ERDDB_Attributes[i].Name.toString());
+							$.ajax({
+								url: urlfindElement,
+								type: "GET",	
+								xhrFields: {
+								  withCredentials: true
 								}
-							};
-							
-							//Figure out if this Display already has an attribute on the element
-							var indexAttribute = false;
-							if (ERDDB_Attributes.length != 0) {
-								if (attributearray.includes(ERD_Attribute)) {
-									indexAttribute = true;
-								}
-							}
-							
-							//Create an attribute if it doesn't exist already
-							if (indexAttribute == false) {
-								var urlcreateAttribute = _piwebapiurl + 'elements/'+ ERDDB_Element_WebId  + '/attributes';
+							})
+							.done(function(data, textStatus, xhr){
+								//Build the attribute
+								var Element_WebId = data.WebId
+								var urlcreateAttribute = _piwebapiurl + 'elements/' + Element_WebId + '/attributes'
 
 								var data_Attribute = {
 									"Name": ERD_Attribute,
@@ -580,50 +678,149 @@ window.PIVisualization = window.PIVisualization || {};
 									}
 								})
 								.done(function(data, textStatus, xhr){
-									console.log("Success");
+									console.log("Success, created an attribute to store config data in");
+									//Time to build out the value for the attribute
+									
+									//figure out what's in the table
+									var table = document.getElementById("ElementsOfInterestTable");
+									var attvalue = "";
+									
+									
+									//Borrowed from here: http://stackoverflow.com/questions/3072233/getting-value-from-table-cell-in-javascript-not-jquery
+									setTimeout(function() {
+										if (table.rows.length != 0){
+											for (var r = 1, n = table.rows.length; r < n; r++) { //We start at row 1 and not 0 because the first row is the table headers
+												for (var c = 1, m = table.rows[r].cells.length; c < m; c++) { //We start at column 1 and not 0 because the first column is the remove button
+													var value = table.rows[r].cells[c].innerHTML;
+													attvalue += value;
+													attvalue += ";";
+												}
+											}
+										}
+										//Post this string to the Attribute value for Storage 
+										var data_Attribute = {
+											"Timestamp": "2017-01-01T01:00:00Z", //Arbitrary time selecting for post
+											"Value": attvalue
+										};
+										var data = JSON.stringify(data_Attribute);
+										
+										$.ajax({
+											url: urlfindattribute,
+											type: "GET",	
+											xhrFields: {
+											  withCredentials: true
+											}
+										})
+										.done(function(data, textStatus, xhr){
+											var attribute_WebId = data.WebId
+											
+											var url = _piwebapiurl + 'attributes/'+ attribute_WebId  + '/value'
+
+											$.ajax({
+												url: url,
+												type: "PUT",		
+												contentType: "application/json",				
+												data: data,			
+												xhrFields: {
+												  withCredentials: true
+												}
+											})
+											.done(function(data, textStatus, xhr){
+												console.log("Success");
+											})
+											.fail(function(xhr, textStatus, errorThrown){
+												console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+											});
+										})
+										.fail(function(xhr, textStatus, errorThrown){
+											console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+										});
+									}, 100); //Giving the table a tenth of a second to load. Inelegant and time consuming but it works	
+									
 								})
-								.fail(function(xhr, textStatus, errorThrown){
+								.fail(function(data, textStatus, errorThrown){
 									console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
 								});
+							});
+						})
+						.fail(function(data, textStatus, errorThrown){
+							console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+						});
+					});
+				})
+				.fail(function(data, textStatus, xhr){
+					// The Database doesn't exist so let's create it
+					var urlcreateDB = _piwebapiurl + 'assetservers/' + Server_WebId + '/assetdatabases'
+					
+					var data_DB = {
+					"Name": ERD_Database,
+					"Description": "Database for storing the Elements of Interest Table in Coresight",
+					"ExtendedProperties": {}
+					};
+					var data = JSON.stringify(data_DB);
+					
+					$.ajax({
+						url: urlcreateDB,
+						type: "POST",		
+						contentType: "application/json",				
+						data: data,			
+						xhrFields: {
+						  withCredentials: true
+						}
+					})
+					.done(function(data, textStatus, xhr){
+						console.log("Success, created a ERD_DB_Store AF Database");
+						
+						//Let's build the Element
+						var data_Element = {
+							"Name": ERD_Element_Store,
+							"Description": "An element which holds string attributes containing the saved elements of interest",
+							"ExtendedProperties": {}
+						}
+						var data = JSON.stringify(data_Element);
+						
+						$.ajax({
+							url: urlcreateElement,
+							type: "POST",		
+							contentType: "application/json",				
+							data: data,			
+							xhrFields: {
+							  withCredentials: true
 							}
+						})
+						.done(function(data, textStatus, xhr){
+							console.log("Success, created a ERD Element Store");
 							
-							//Get the attributes of the ERD Element 
-							var url = _piwebapiurl + 'elements/'+ ERDDB_Element_WebId  + '/attributes';
+							//Build the attribute
+							var Element_WebId = data.WebId
+							var urlcreateAttribute = _piwebapiurl + '/elements/' + Element_WebId + '/attributes'
+
+							var data_Attribute = {
+								"Name": ERD_Attribute,
+								"Description": "Holds the config string of the Elements of Interest",
+								"Type": "String",
+								"TypeQualifier": "",
+								"DefaultUnitsName": ""
+							}
+							var data = JSON.stringify(data_Attribute);
+							
 							$.ajax({
-								url: url,
-								type: "GET",			
+								url: urlcreateAttribute,
+								type: "POST",		
+								contentType: "application/json",				
+								data: data,			
 								xhrFields: {
 								  withCredentials: true
 								}
 							})
-							.done(function(data){
-								ERDDB_Attributes = data;
-							})
-							.fail(function(xhr, textStatus, errorThrown){
-								console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
-							});
-							
-							// Create an array of attributes rather than a collection of dictionary objects
-							attributearray = [];
-							numatt = ERDDB_Attributes.length;
-							if (numatt > 0){
-								for(var i = 0; i < numatt; i++){
-									attributearray.push(ERDDB_Attributes[i].Name.toString());
-								}
-							};
-							
-							var attribute_WebId = null;
-							//Get the attribute for this Display
-							for (var i=0, n=ERDDB_Attributes.length; i<n; i++) {
-								if (attributearray[i] == ERD_Attribute) {
-									attribute_WebId = ERDDB_Attributes[i].WebId;
-								}
-							}
-							var httprequesttype = "PUT";
-							
-							//figure out what's in the table
+							.done(function(data, textStatus, xhr){
+								console.log("Success, created an attribute to store config data in");
+								//Time to build out the value for the attribute
+								
+								//figure out what's in the table
 								var table = document.getElementById("ElementsOfInterestTable");
 								var attvalue = "";
+								
 								
 								//Borrowed from here: http://stackoverflow.com/questions/3072233/getting-value-from-table-cell-in-javascript-not-jquery
 								setTimeout(function() {
@@ -635,7 +832,6 @@ window.PIVisualization = window.PIVisualization || {};
 												attvalue += ";";
 											}
 										}
-										//console.log(attvalue);
 									}
 									//Post this string to the Attribute value for Storage 
 									var data_Attribute = {
@@ -644,32 +840,59 @@ window.PIVisualization = window.PIVisualization || {};
 									};
 									var data = JSON.stringify(data_Attribute);
 									
-									var url = _piwebapiurl + 'attributes/'+ attribute_WebId  + '/value'
-
 									$.ajax({
-										url: url,
-										type: httprequesttype,		
-										contentType: "application/json",				
-										data: data,			
+										url: urlfindattribute,
+										type: "GET",	
 										xhrFields: {
 										  withCredentials: true
 										}
 									})
 									.done(function(data, textStatus, xhr){
-										console.log("Success");
+										var attribute_WebId = data.WebId
+										
+										var url = _piwebapiurl + 'attributes/'+ attribute_WebId  + '/value'
+
+										$.ajax({
+											url: url,
+											type: "PUT",		
+											contentType: "application/json",				
+											data: data,			
+											xhrFields: {
+											  withCredentials: true
+											}
+										})
+										.done(function(data, textStatus, xhr){
+											console.log("Success");
+										})
+										.fail(function(xhr, textStatus, errorThrown){
+											console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+										});
 									})
 									.fail(function(xhr, textStatus, errorThrown){
 										console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
 									});
 								}, 100); //Giving the table a tenth of a second to load. Inelegant and time consuming but it works	
+								
+							})
+							.fail(function(data, textStatus, errorThrown){
+								console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+							});
+						})
+						.fail(function(xhr, textStatus, errorThrown){
+							console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
 						});
-				}
+					//Update the databases variable
+					 GenerateDatabases();
+					})
+					.fail(function(xhr, textStatus, errorThrown){
+						console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
+					});
+				});
 			})
-			
-			.error(function(response){
-				alert(response.Errors[0]);	
+			.fail(function(xhr, textStatus, errorThrown){
+				console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
 			});
-		
+		});
 	}
 	
 	var GenerateTemplatesAndCategories = function(){
@@ -682,34 +905,46 @@ window.PIVisualization = window.PIVisualization || {};
 			var c_cbx = $("#input-category").data("kendoComboBox");
 		
 			var url = _piwebapiurl + "assetdatabases/" + $rootScope.ERDData.selectedDatabase.WebId + "/elementcategories";
-			$http.get(url, {withCredentials: true})
-				.success(function(data, status, headers, config, statusText){
-					data.Items.forEach(function(c){
-						$rootScope.ERDData.categories.push(c.Name);					
-					});
-					c_cbx.dataSource.read();
-					if($rootScope.ERDData.categories.length > 0){
-						c_cbx.readonly(false);
-					}
-					else{
-						c_cbx.readonly(true);
-					}
+			$.ajax({
+				url: url,
+				type: "GET",			
+				xhrFields: {
+				  withCredentials: true
+				}
+			})
+			.done(function(data, textStatus, xhr){
+				data.Items.forEach(function(c){
+					$rootScope.ERDData.categories.push(c.Name);					
 				});
+				c_cbx.dataSource.read();
+				if($rootScope.ERDData.categories.length > 0){
+					c_cbx.readonly(false);
+				}
+				else{
+					c_cbx.readonly(true);
+				}
+			});
 				
 			url = _piwebapiurl + "assetdatabases/" + $rootScope.ERDData.selectedDatabase.WebId + "/elementtemplates";
-			$http.get(url, {withCredentials: true})
-				.success(function(data, status, headers, config, statusText){
-					data.Items.forEach(function(t){
-						$rootScope.ERDData.templates.push(t.Name);
-					});				
-					t_cbx.dataSource.read();	
-					if($rootScope.ERDData.templates.length > 0){
-						t_cbx.readonly(false);
-					}
-					else{
-						t_cbx.readonly(true);
-					}					
-				});
+			$.ajax({
+				url: url,
+				type: "GET",			
+				xhrFields: {
+				  withCredentials: true
+				}
+			})
+			.done(function(data, textStatus, xhr){
+				data.Items.forEach(function(t){
+					$rootScope.ERDData.templates.push(t.Name);
+				});				
+				t_cbx.dataSource.read();	
+				if($rootScope.ERDData.templates.length > 0){
+					t_cbx.readonly(false);
+				}
+				else{
+					t_cbx.readonly(true);
+				}	
+			});
 		}
 	}
 	
@@ -750,12 +985,11 @@ window.PIVisualization = window.PIVisualization || {};
 	//Get the Display ID from Coresight's URL
 	var URLParams = document.URL.split("/");
 	var VisionURL = URLParams[0] + "/" + URLParams[1] + "/" + URLParams[2] + "/" + URLParams[3];
-	//window.alert(VisionURL + "/Scripts/app/editor/tools/ext/setup.json");
 	var ERD_Attribute = URLParams[6];
 	var ERD_Server;
 	var ERD_Database = "ERD_DB_Store";
 	var ERD_Element_Store = "ERD_Element_Store";
-		
+	
 	var content;
 	$.ajax({
 		url: VisionURL + "/Scripts/app/editor/tools/ext/setup.json",
@@ -768,7 +1002,6 @@ window.PIVisualization = window.PIVisualization || {};
 	.done(function(data, textStatus, xhr){
 		content = data;
 		ERD_Server = content.AFServer;
-		//console.log(ERD_Server);
 
 		//New Displays will have nothing to load up
 		if (ERD_Attribute != "New") { 
@@ -800,14 +1033,10 @@ window.PIVisualization = window.PIVisualization || {};
 				});
 			});
 		}
-		
 	})
 	.fail(function(xhr, textStatus, errorThrown){
 		console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
 	});
-
-	
-
 };
 	
  
