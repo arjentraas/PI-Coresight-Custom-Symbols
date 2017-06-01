@@ -189,8 +189,6 @@ window.PIVisualization = window.PIVisualization || {};
 		filter: "contains",
 		select: function(e){
 			//add a slash after the selection
-			console.log(e.item);
-			//if(e.item
 			$rootScope.ERDData.rootSlashNeeded = true;
 		}
 	}).data("kendoAutoComplete");
@@ -233,16 +231,18 @@ window.PIVisualization = window.PIVisualization || {};
 	
 	$rootScope.ERDData.rootChanged = function(oldERDData){	
 		var oldval = oldERDData.rootString;
+		var rs = $rootScope.ERDData.rootString;
 		console.log($rootScope.ERDData.rootSlashNeeded);
-		if(oldval && oldval.length > $rootScope.ERDData.rootString.length){
+		if(oldval && oldval.length > rs.length){
 			//characters deleted
 			if($rootScope.ERDData.rootString.length == 0){
 				GenerateRootElements(false, $rootScope.ERDData.selectedDatabase.WebId);
 			}
 			else{
-				if(oldval.slice(-1) == '\\'){
+				var deletedString = oldval.substring(rs.length);
+				console.log(deletedString);
+				if(deletedString.includes("\\")){
 					//if a slash was deleted
-					var rs = $rootScope.ERDData.rootString;
 					var lastSlash = rs.lastIndexOf("\\");
 					
 					//did we delete everything but the database root element?
@@ -251,7 +251,9 @@ window.PIVisualization = window.PIVisualization || {};
 						var path = rs.slice(0,lastSlash);
 						path = "\\\\" + $rootScope.ERDData.selectedServer.Name + "\\" + $rootScope.ERDData.selectedDatabase.Name + "\\" + path;
 						var url = _piwebapiurl + "elements?path=" + path;
-						console.log(url);
+											
+						//get child elements of root
+						var url = _piwebapiurl + "elements?path=" + path;
 						$.ajax({
 							url: url,
 							type: "GET",			
@@ -260,11 +262,13 @@ window.PIVisualization = window.PIVisualization || {};
 							}
 						})
 						.done(function(data){
+							$rootScope.ERDData.root = {Name: data.Name, WebId: data.WebId, Path: path};
 							GenerateRootElements(true, data.WebId);
 						});
 					}
 					else{
 						//yes, generate the list of database root elements
+						$rootScope.ERDData.root = {};
 						GenerateRootElements(false, $rootScope.ERDData.selectedDatabase.WebId);
 					}
 				}
@@ -321,6 +325,7 @@ window.PIVisualization = window.PIVisualization || {};
 		
 			var endpoint;
 			if(!jQuery.isEmptyObject($rootScope.ERDData.root)){
+				console.log($rootScope.ERDData.root);
 				endpoint = 'elements/'+$rootScope.ERDData.root.WebId;
 			}
 			else{
@@ -488,7 +493,7 @@ window.PIVisualization = window.PIVisualization || {};
 					}
 				})
 				.done(function(data, textStatus, xhr){
-					console.log("Success");
+					//console.log("Success");
 				})
 				.fail(function(xhr, textStatus, errorThrown){
 					console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
@@ -558,7 +563,7 @@ window.PIVisualization = window.PIVisualization || {};
 							}
 						})
 						.done(function(data, textStatus, xhr){
-							console.log("Success, created an attribute to store config data in");
+							//console.log("Success, created an attribute to store config data in");
 							
 							//Time to build out the value for the attribute
 							
@@ -596,7 +601,7 @@ window.PIVisualization = window.PIVisualization || {};
 									var attribute_WebId = data.WebId
 									
 									var url = _piwebapiurl + 'attributes/'+ attribute_WebId  + '/value'
-
+									//console.log(data);
 									$.ajax({
 										url: url,
 										type: "PUT",		
@@ -607,7 +612,7 @@ window.PIVisualization = window.PIVisualization || {};
 										}
 									})
 									.done(function(data, textStatus, xhr){
-										console.log("Success");
+										//console.log("Success");
 									})
 									.fail(function(xhr, textStatus, errorThrown){
 										console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
@@ -645,7 +650,7 @@ window.PIVisualization = window.PIVisualization || {};
 							}
 						})
 						.done(function(data, textStatus, xhr){
-							console.log("Success, created a ERD Element Store");
+							//console.log("Success, created a ERD Element Store");
 							
 							$.ajax({
 								url: urlfindElement,
@@ -678,7 +683,7 @@ window.PIVisualization = window.PIVisualization || {};
 									}
 								})
 								.done(function(data, textStatus, xhr){
-									console.log("Success, created an attribute to store config data in");
+									//console.log("Success, created an attribute to store config data in");
 									//Time to build out the value for the attribute
 									
 									//figure out what's in the table
@@ -726,7 +731,7 @@ window.PIVisualization = window.PIVisualization || {};
 												}
 											})
 											.done(function(data, textStatus, xhr){
-												console.log("Success");
+												//console.log("Success");
 											})
 											.fail(function(xhr, textStatus, errorThrown){
 												console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
@@ -769,7 +774,7 @@ window.PIVisualization = window.PIVisualization || {};
 						}
 					})
 					.done(function(data, textStatus, xhr){
-						console.log("Success, created a ERD_DB_Store AF Database");
+						//console.log("Success, created a ERD_DB_Store AF Database");
 						
 						//Let's build the Element
 						var data_Element = {
@@ -789,7 +794,7 @@ window.PIVisualization = window.PIVisualization || {};
 							}
 						})
 						.done(function(data, textStatus, xhr){
-							console.log("Success, created a ERD Element Store");
+							//console.log("Success, created a ERD Element Store");
 							
 							//Build the attribute
 							var Element_WebId = data.WebId
@@ -814,7 +819,7 @@ window.PIVisualization = window.PIVisualization || {};
 								}
 							})
 							.done(function(data, textStatus, xhr){
-								console.log("Success, created an attribute to store config data in");
+								//console.log("Success, created an attribute to store config data in");
 								//Time to build out the value for the attribute
 								
 								//figure out what's in the table
@@ -862,7 +867,7 @@ window.PIVisualization = window.PIVisualization || {};
 											}
 										})
 										.done(function(data, textStatus, xhr){
-											console.log("Success");
+											//console.log("Success");
 										})
 										.fail(function(xhr, textStatus, errorThrown){
 											console.log(xhr.status + '\n'  + textStatus + '\n' + errorThrown + '\n' + xhr.responseText + '\n');
