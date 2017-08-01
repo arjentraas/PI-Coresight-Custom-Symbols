@@ -18,31 +18,31 @@
 	cursor:pointer;
 }
 
-table{
+table.ERD-table{
 	text-overflow:ellipsis; 
 	border-collapse: collapse;
 }
 
-table th { 
+table.ERD-table th { 
 	font-weight:bold; 
 	padding: 8px;
 	text-align:left;
 	background-color: #ffffff;
 }
 
-table tr { 
+table.ERD-table tr { 
 	border-bottom: 1px solid #ddd;
 }
 
-table tr td {
+table.ERD-table tr td {
 	padding: 8px;
 	text-align:left;
 }
 
-tr:nth-child(even) { background-color: #ffffff; }
-tr:nth-child(odd) { background-color: #f0f0f0; }
+table.ERD-table tr:nth-child(even) { background-color: #ffffff; }
+table.ERD-table tr:nth-child(odd) { background-color: #f0f0f0; }
 
-tr:hover{ background-color:#ddd !important }
+table.ERD-table tr:hover{ background-color:#ddd !important }
 
 .searchField{
 	width: 90%;
